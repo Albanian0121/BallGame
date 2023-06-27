@@ -2,6 +2,10 @@ import GameplayKit
 
 class GameScene: SKScene, SKPhysicsContactDelegate {
     
+    var hasShownContinueButton: Bool = false
+    var gameViewController: GameViewController?
+    var isGameActive = false
+    var continueGameLabel: SKLabelNode?
     private var isGameStarted = false
     private var startGameLabel: SKLabelNode?
     private var ball = SKShapeNode()
@@ -14,14 +18,12 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             let scaleDown = SKAction.scale(to: 1.0, duration: 0.2)
             self.scoreLabel?.run(SKAction.sequence([scaleUp, scaleDown]))
             scoreLabel?.zPosition = 100  // Set a high zPosition
-
         }
     }
     
     var gameSpeed: TimeInterval = 1.0 // Vitesse initiale du jeu
     var gapHeight: CGFloat = 300.0 // Hauteur initiale des trous dans les murs
     var wallMovementSpeed: CGFloat = 1.0 // Vitesse à laquelle les murs bougent de gauche à droite
-
     struct PhysicsCategories {
         static let none: UInt32 = 0
         static let ball: UInt32 = 0x1 << 0
@@ -34,17 +36,18 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         self.backgroundColor = UIColor.white
         
         let lightBlue = UIColor(red: 173/255, green: 216/255, blue: 230/255, alpha: 1)
-        let lightGreen = UIColor(red: 144/255, green: 238/255, blue: 144/255, alpha: 1)
-        let lightYellow = UIColor(red: 255/255, green: 255/255, blue: 224/255, alpha: 1)
-        let lightRed = UIColor(red: 255/255, green: 182/255, blue: 193/255, alpha: 1)
-        let lightGray = UIColor(red: 211/255, green: 211/255, blue: 211/255, alpha: 1)
+          let lightGreen = UIColor(red: 144/255, green: 238/255, blue: 144/255, alpha: 1)
+          let lightYellow = UIColor(red: 255/255, green: 255/255, blue: 224/255, alpha: 1)
+          let lightRed = UIColor(red: 255/255, green: 182/255, blue: 193/255, alpha: 1)
+          let lightGray = UIColor(red: 211/255, green: 211/255, blue: 211/255, alpha: 1)
+          
+          let colorChange = SKAction.sequence([
+              SKAction.colorize(with: lightYellow, colorBlendFactor: 1.0, duration: 10.7),
+              SKAction.colorize(with: lightGreen, colorBlendFactor: 3.0, duration: 14.6),
+              SKAction.colorize(with: lightRed, colorBlendFactor: 1.0, duration: 20),
+              SKAction.colorize(with: lightGray, colorBlendFactor: 1.0, duration: 12.5),
+              SKAction.colorize(with: lightBlue, colorBlendFactor: 1.0, duration: 14),
         
-        let colorChange = SKAction.sequence([
-            SKAction.colorize(with: lightYellow, colorBlendFactor: 1.0, duration: 10.7),
-            SKAction.colorize(with: lightGreen, colorBlendFactor: 3.0, duration: 14.6),
-            SKAction.colorize(with: lightRed, colorBlendFactor: 1.0, duration: 20),
-            SKAction.colorize(with: lightGray, colorBlendFactor: 1.0, duration: 12.5),
-            SKAction.colorize(with: lightBlue, colorBlendFactor: 1.0, duration: 14),
         ])
         let colorChangeLoop = SKAction.repeatForever(colorChange)
         self.run(colorChangeLoop)
@@ -81,10 +84,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         self.addChild(self.startGameLabel!)
 
     }
-
-
-
-
 
     func addWall() {
         let wallThickness: CGFloat = 100.0
@@ -126,49 +125,49 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
         // Adjust game parameters based on score
         if score >= 0 {
-            moveDuration = gameSpeed * 1
-            wallAddInterval = 1
-            gapHeight = 250
-            wallMovementSpeed = 1.7
-        }
-        if score >= 10 {
-            moveDuration = gameSpeed * 1
-            wallAddInterval = 0.7
-            gapHeight = 250
-            wallMovementSpeed = 1.8
-        }
-        if score >= 25 {
-            moveDuration = gameSpeed * 1
-            wallAddInterval = 0.7
-            gapHeight = 220
-            wallMovementSpeed = 2
-        }
-        
-        if score >= 50 {
-            moveDuration = gameSpeed * 1
-            wallAddInterval = 0.6
-            gapHeight = 180
-            wallMovementSpeed = 2
-        }
-        
-        if score >= 70 {
-            moveDuration = gameSpeed * 0.8
-            wallAddInterval = 0.5
-            gapHeight = 180
-            wallMovementSpeed = 2.2
-        }
-        
-        if score >= 100 {
-            moveDuration = gameSpeed * 0.7
-            wallAddInterval = 0.5
-            gapHeight = 180
-            wallMovementSpeed = 2.3
-        }
+                   moveDuration = gameSpeed * 1
+                   wallAddInterval = 1
+                   gapHeight = 250
+                   wallMovementSpeed = 1.7
+               }
+               if score >= 10 {
+                   moveDuration = gameSpeed * 1
+                   wallAddInterval = 0.7
+                   gapHeight = 250
+                   wallMovementSpeed = 1.8
+               }
+               if score >= 25 {
+                   moveDuration = gameSpeed * 1
+                   wallAddInterval = 0.7
+                   gapHeight = 220
+                   wallMovementSpeed = 2
+               }
+               
+               if score >= 50 {
+                   moveDuration = gameSpeed * 1
+                   wallAddInterval = 0.6
+                   gapHeight = 180
+                   wallMovementSpeed = 2
+               }
+               
+               if score >= 70 {
+                   moveDuration = gameSpeed * 0.8
+                   wallAddInterval = 0.5
+                   gapHeight = 180
+                   wallMovementSpeed = 2.2
+               }
+               
+               if score >= 100 {
+                   moveDuration = gameSpeed * 0.7
+                   wallAddInterval = 0.5
+                   gapHeight = 180
+                   wallMovementSpeed = 2.3
+               }
 
-        // Ensure gap height doesn't get too small
-        if gapHeight < 100 {
-            gapHeight = 100
-        }
+               // Ensure gap height doesn't get too small
+               if gapHeight < 100 {
+                   gapHeight = 100
+               }
 
         let moveDown = SKAction.moveTo(y: frame.minY - wallThickness, duration: TimeInterval(moveDuration))
         let remove = SKAction.removeFromParent()
@@ -191,7 +190,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
     }
 
-
     func createWall(size: CGSize, position: CGPoint) -> SKSpriteNode {
         let wall = SKSpriteNode(imageNamed: "wallImage")
         wall.size = size
@@ -204,7 +202,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         return wall
     }
     
-    private var lastWallAddedTime: TimeInterval = 0.0
+    private var lastWallAddedTime: TimeInterval = 0.5
     private var wallAddInterval: TimeInterval = 1
 
     override func update(_ currentTime: TimeInterval) {
@@ -249,6 +247,79 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             }
         }
     }
+    
+    func continueGame() {
+        gameViewController?.userDidEarnReward = false
+        self.isPaused = true
+        ball.physicsBody?.isDynamic = false
+
+        // Place the ball back in the center of the screen
+        ball.position = CGPoint(x: frame.midX, y: frame.minY + 350)
+
+        // Create move down action
+        let moveDown = SKAction.moveTo(y: frame.minY + 150, duration: 1)
+        
+        // Remove game over popup and labels
+        for child in children {
+            if child.name == "tryAgain" || child.name == "continueGame" || child.name == "gameOverPopup" || child.name == "gameOverLabel" || child.name == "scoreFinalLabel" {
+                child.removeFromParent()
+            }
+        }
+
+        // Resume the game
+        self.isPaused = false
+        self.ball.physicsBody?.isDynamic = true
+        self.ball.run(moveDown)
+    }
+    
+    
+    func startCountdownAndContinueGame() {
+        // Remove game over popup and labels
+        for child in children {
+            if child.name == "tryAgain" || child.name == "continueGame" || child.name == "gameOverPopup" || child.name == "gameOverLabel" || child.name == "scoreFinalLabel" {
+                child.removeFromParent()
+            }
+        }
+
+        // Place the ball back in the center of the screen
+        ball.position = CGPoint(x: frame.midX, y: frame.minY + 350)
+
+        // Create a semi-transparent black background
+        let blackout = SKSpriteNode(color: .black, size: self.size)
+        blackout.alpha = 0.5
+        blackout.zPosition = 100
+        blackout.position = CGPoint(x: frame.midX, y: frame.midY)
+        self.addChild(blackout)
+
+        // Create countdown label
+        let countdownLabel = SKLabelNode(text: "5")
+        countdownLabel.position = CGPoint(x: frame.midX, y: frame.midY)
+        countdownLabel.fontColor = UIColor.white
+        countdownLabel.fontSize = 300
+        countdownLabel.zPosition = 101
+        self.addChild(countdownLabel)
+
+        // Start countdown on another thread
+        DispatchQueue.global().async {
+            for i in (1...5).reversed() {
+                DispatchQueue.main.async {
+                    countdownLabel.text = "\(i)"
+                }
+                sleep(1)
+            }
+            DispatchQueue.main.async {
+                countdownLabel.text = "GO"
+            }
+            sleep(1)
+            DispatchQueue.main.async {
+                countdownLabel.removeFromParent()
+                blackout.removeFromParent() // Remove the semi-transparent black background
+                // Continue the game
+                self.continueGame()
+            }
+        }
+    }
+
 
 
     func gameOver() {
@@ -256,11 +327,13 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         ball.physicsBody?.isDynamic = false
 
         let gameOverPopup = SKShapeNode(rect: self.frame.insetBy(dx: 50, dy: 50), cornerRadius: 10)
+        gameOverPopup.name = "gameOverPopup"
         gameOverPopup.fillColor = UIColor.black.withAlphaComponent(0.8)
         gameOverPopup.zPosition = 100
         self.addChild(gameOverPopup)
 
         self.gameOverLabel = SKLabelNode(text: "Game Over")
+        self.gameOverLabel?.name = "gameOverLabel"
         self.gameOverLabel?.fontName = "Arial-BoldMT"
         self.gameOverLabel?.position = CGPoint(x: frame.midX, y: frame.midY + 50)
         self.gameOverLabel?.fontColor = UIColor.white
@@ -269,6 +342,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         self.addChild(self.gameOverLabel!)
 
         let scoreFinalLabel = SKLabelNode(text: "Score Final: \(score)")
+        scoreFinalLabel.name = "scoreFinalLabel"
         scoreFinalLabel.position = CGPoint(x: frame.midX, y: frame.midY)
         scoreFinalLabel.fontColor = UIColor.white
         scoreFinalLabel.fontName = "Arial-BoldMT"
@@ -288,6 +362,19 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         let rotate = SKAction.rotate(byAngle: .pi * 2, duration: 1)
         let rotateForever = SKAction.repeatForever(rotate)
         gameOverPopup.run(rotateForever)
+        
+        if !hasShownContinueButton {
+             continueGameLabel = SKLabelNode(text: "Tap to Continue")
+             continueGameLabel?.name = "continueGame"
+             continueGameLabel?.fontName = "Arial-BoldMT"
+             continueGameLabel?.position = CGPoint(x: frame.midX, y: frame.midY - 100)
+             continueGameLabel?.fontColor = UIColor.white
+             continueGameLabel?.fontSize = 35
+             continueGameLabel?.zPosition = 101
+             self.addChild(continueGameLabel!)
+             
+             hasShownContinueButton = true
+        }
     }
 
     
@@ -296,6 +383,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             let location = touch.location(in: self)
             ball.position = CGPoint(x: location.x, y: ball.position.y) // Keep the ball moving with the finger
         }
+        if !isGameActive {
+              return
+          }
     }
     
 
@@ -309,11 +399,27 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
             if nodesAtPoint.contains(where: { $0.name == "tryAgain" }) {
                 restartGame()
+            }    else if nodesAtPoint.contains(where: { $0.name == "continueGame" }) {
+                if gameViewController?.userDidEarnReward == true {
+                    startCountdownAndContinueGame()
+                } else {
+                    if let rewardedAd = gameViewController?.rewardedAd {
+                        rewardedAd.present(fromRootViewController: gameViewController!, userDidEarnRewardHandler: {
+                            self.gameViewController?.userDidEarnReward = true
+                            // Move the call to startCountdownAndContinueGame() here
+                            self.startCountdownAndContinueGame()
+                        })
+                    } else {
+                        print("Ad wasn't ready")
+                    }
+                }
             } else {
                 ball.position = CGPoint(x: location!.x, y: ball.position.y)
             }
+
         }
     }
+
     
     func showLevelUpMessage(text: String) {
            let levelUpLabel = SKLabelNode(text: text)
@@ -384,8 +490,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         self.run(colorChangeLoop)
 
         self.isPaused = false
+        hasShownContinueButton = false
+        gameViewController?.userDidEarnReward = false
+
+
     }
-
-
 
 }
