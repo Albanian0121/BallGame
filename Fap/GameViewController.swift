@@ -8,6 +8,7 @@ class GameViewController: UIViewController, GADBannerViewDelegate, GADFullScreen
     var rewardedAd: GADRewardedAd?
     var userDidEarnReward: Bool = false
 
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
