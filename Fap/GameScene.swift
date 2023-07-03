@@ -6,6 +6,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     var gameViewController: GameViewController?
     var isGameActive = false
     var continueGameLabel: SKLabelNode?
+    var fireParticles: SKEmitterNode?
     private var isGameStarted = false
     private var startGameLabel: SKLabelNode?
     private var ball = SKShapeNode()
@@ -32,26 +33,27 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     }
     
     override func didMove(to view: SKView) {
+        
         self.physicsWorld.gravity = CGVector(dx: 0.0, dy: 0)
         self.backgroundColor = UIColor.white
-        
+
         let lightBlue = UIColor(red: 173/255, green: 216/255, blue: 230/255, alpha: 1)
-          let lightGreen = UIColor(red: 144/255, green: 238/255, blue: 144/255, alpha: 1)
-          let lightYellow = UIColor(red: 255/255, green: 255/255, blue: 224/255, alpha: 1)
-          let lightRed = UIColor(red: 255/255, green: 182/255, blue: 193/255, alpha: 1)
-          let lightGray = UIColor(red: 211/255, green: 211/255, blue: 211/255, alpha: 1)
-          
-          let colorChange = SKAction.sequence([
-              SKAction.colorize(with: lightYellow, colorBlendFactor: 1.0, duration: 10.7),
-              SKAction.colorize(with: lightGreen, colorBlendFactor: 3.0, duration: 14.6),
-              SKAction.colorize(with: lightRed, colorBlendFactor: 1.0, duration: 20),
-              SKAction.colorize(with: lightGray, colorBlendFactor: 1.0, duration: 12.5),
-              SKAction.colorize(with: lightBlue, colorBlendFactor: 1.0, duration: 14),
-        
+        let lightGreen = UIColor(red: 144/255, green: 238/255, blue: 144/255, alpha: 1)
+        let lightYellow = UIColor(red: 255/255, green: 255/255, blue: 224/255, alpha: 1)
+        let lightRed = UIColor(red: 255/255, green: 182/255, blue: 193/255, alpha: 1)
+        let lightGray = UIColor(red: 211/255, green: 211/255, blue: 211/255, alpha: 1)
+
+        let colorChange = SKAction.sequence([
+            SKAction.colorize(with: lightYellow, colorBlendFactor: 1.0, duration: 10.7),
+            SKAction.colorize(with: lightGreen, colorBlendFactor: 3.0, duration: 14.6),
+            SKAction.colorize(with: lightRed, colorBlendFactor: 1.0, duration: 20),
+            SKAction.colorize(with: lightGray, colorBlendFactor: 1.0, duration: 12.5),
+            SKAction.colorize(with: lightBlue, colorBlendFactor: 1.0, duration: 14),
+
         ])
         let colorChangeLoop = SKAction.repeatForever(colorChange)
         self.run(colorChangeLoop)
-        
+
         self.ball = SKShapeNode(circleOfRadius: 50)
         self.ball.position = CGPoint(x: frame.midX, y: frame.minY + 150)
         self.ball.fillColor = UIColor.red
@@ -63,8 +65,20 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         self.ball.physicsBody?.collisionBitMask = PhysicsCategories.wall
         self.ball.physicsBody?.contactTestBitMask = PhysicsCategories.wall | PhysicsCategories.score
 
+        if let fireParticles = SKEmitterNode(fileNamed: "Fire.sks") {
+            fireParticles.position = CGPoint(x: 0, y: 0)
+            fireParticles.zPosition = -1 // make sure fire is under the ball
+            fireParticles.emissionAngle = CGFloat.pi / 2  // emits particles sideways
+            fireParticles.emissionAngleRange = CGFloat.pi * 2  // emits particles in all directions
+            fireParticles.particleBirthRate = 0  // start with no fire
+            self.fireParticles = fireParticles
+            self.ball.addChild(fireParticles)
+        }
+
+
+
         self.addChild(ball)
-                
+
         self.scoreLabel = SKLabelNode(fontNamed: "Arial-BoldMT")
         self.scoreLabel?.text = "Score"
         self.scoreLabel?.fontSize = 40 // Increase font size
@@ -74,7 +88,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         self.addChild(self.scoreLabel!)
 
         self.physicsWorld.contactDelegate = self
-        
+
         self.startGameLabel = SKLabelNode(fontNamed: "Arial-BoldMT")
         self.startGameLabel?.text = "Touch to Start"
         self.startGameLabel?.fontSize = 60 // Increase font size
@@ -82,8 +96,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         self.startGameLabel?.position = CGPoint(x: frame.midX, y: frame.midY)
 
         self.addChild(self.startGameLabel!)
-
     }
+
 
     func addWall() {
         let wallThickness: CGFloat = 100.0
@@ -215,10 +229,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     }
     
     func didBegin(_ contact: SKPhysicsContact) {
-           if contact.bodyA.categoryBitMask == PhysicsCategories.wall || contact.bodyB.categoryBitMask == PhysicsCategories.wall {
-               gameOver()
-           } else if contact.bodyA.categoryBitMask == PhysicsCategories.score || contact.bodyB.categoryBitMask == PhysicsCategories.score {
-                  // Seulement augmenter le score quand la balle entre en contact avec le nœud de score
+        if contact.bodyA.categoryBitMask == PhysicsCategories.wall || contact.bodyB.categoryBitMask == PhysicsCategories.wall {
+            gameOver()
+        } else if contact.bodyA.categoryBitMask == PhysicsCategories.score || contact.bodyB.categoryBitMask == PhysicsCategories.score {
+            // Seulement augmenter le score quand la balle entre en contact avec le nœud de score
             if contact.bodyA.categoryBitMask == PhysicsCategories.ball || contact.bodyB.categoryBitMask == PhysicsCategories.ball {
                 // Pour éviter de marquer plusieurs fois pour un seul passage,
                 // vous pouvez retirer le nœud de score après que le score a été augmenté.
@@ -227,9 +241,23 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 } else if contact.bodyB.categoryBitMask == PhysicsCategories.score {
                     contact.bodyB.node?.removeFromParent()
                 }
+
                 score += 1
 
-                // Ajout des messages pour chaque niveau atteint
+                // Ajuste l'intensité du feu en fonction du score.
+                if score == 10 {
+                    fireParticles?.particleBirthRate = 500  // Commence le feu
+                } else if score == 25 {
+                    fireParticles?.particleBirthRate = 1500  // Rend le feu plus fort
+                } else if score == 50 {
+                    fireParticles?.particleBirthRate = 3000  // Rend le feu encore plus fort
+                }else if score == 70 {
+                    fireParticles?.particleBirthRate = 6000  // Rend le feu encore plus fort
+                }else if score == 100 {
+                    fireParticles?.particleBirthRate = 7000  // Rend le feu encore plus fort
+                }
+
+                // Ajoute des messages pour chaque niveau atteint
                 switch score {
                 case 10:
                     showLevelUpMessage(text: "Chill Level!")
@@ -247,18 +275,15 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             }
         }
     }
+
     
     func continueGame() {
         gameViewController?.userDidEarnReward = false
-        self.isPaused = true
         ball.physicsBody?.isDynamic = false
 
         // Place the ball back in the center of the screen
-        ball.position = CGPoint(x: frame.midX, y: frame.minY + 350)
+        ball.position = CGPoint(x: frame.midX, y: frame.minY + 150)
 
-        // Create move down action
-        let moveDown = SKAction.moveTo(y: frame.minY + 150, duration: 1)
-        
         // Remove game over popup and labels
         for child in children {
             if child.name == "tryAgain" || child.name == "continueGame" || child.name == "gameOverPopup" || child.name == "gameOverLabel" || child.name == "scoreFinalLabel" {
@@ -267,13 +292,12 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         }
 
         // Resume the game
-        self.isPaused = false
         self.ball.physicsBody?.isDynamic = true
-        self.ball.run(moveDown)
     }
     
     
     func startCountdownAndContinueGame() {
+        self.isPaused = false // Reprendre la scène
         // Remove game over popup and labels
         for child in children {
             if child.name == "tryAgain" || child.name == "continueGame" || child.name == "gameOverPopup" || child.name == "gameOverLabel" || child.name == "scoreFinalLabel" {
@@ -282,7 +306,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         }
 
         // Place the ball back in the center of the screen
-        ball.position = CGPoint(x: frame.midX, y: frame.minY + 350)
+        ball.position = CGPoint(x: frame.midX, y: frame.minY + 150)
 
         // Create a semi-transparent black background
         let blackout = SKSpriteNode(color: .black, size: self.size)
@@ -325,59 +349,61 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     func gameOver() {
         self.isPaused = true
         ball.physicsBody?.isDynamic = false
-
-        let gameOverPopup = SKShapeNode(rect: self.frame.insetBy(dx: 50, dy: 50), cornerRadius: 10)
+        
+        let gameOverPopup = SKShapeNode(rect: self.frame.insetBy(dx: 50, dy: 50), cornerRadius: 30)
         gameOverPopup.name = "gameOverPopup"
         gameOverPopup.fillColor = UIColor.black.withAlphaComponent(0.8)
+        gameOverPopup.strokeColor = UIColor.white
+        gameOverPopup.lineWidth = 10
         gameOverPopup.zPosition = 100
         self.addChild(gameOverPopup)
-
-        self.gameOverLabel = SKLabelNode(text: "Game Over")
+        
+        self.gameOverLabel = SKLabelNode(text: "GAME OVER")
         self.gameOverLabel?.name = "gameOverLabel"
-        self.gameOverLabel?.fontName = "Arial-BoldMT"
-        self.gameOverLabel?.position = CGPoint(x: frame.midX, y: frame.midY + 50)
+        self.gameOverLabel?.fontName = "HelveticaNeue-Bold"
+        self.gameOverLabel?.position = CGPoint(x: frame.midX, y: frame.midY + 100)
         self.gameOverLabel?.fontColor = UIColor.white
-        self.gameOverLabel?.fontSize = 50
+        self.gameOverLabel?.fontSize = 70
         self.gameOverLabel?.zPosition = 101
         self.addChild(self.gameOverLabel!)
-
-        let scoreFinalLabel = SKLabelNode(text: "Score Final: \(score)")
+        
+        let scoreFinalLabel = SKLabelNode(text: "Final Score: \(score)")
         scoreFinalLabel.name = "scoreFinalLabel"
         scoreFinalLabel.position = CGPoint(x: frame.midX, y: frame.midY)
         scoreFinalLabel.fontColor = UIColor.white
-        scoreFinalLabel.fontName = "Arial-BoldMT"
-        scoreFinalLabel.fontSize = 35
+        scoreFinalLabel.fontName = "HelveticaNeue"
+        scoreFinalLabel.fontSize = 50
         scoreFinalLabel.zPosition = 101
         self.addChild(scoreFinalLabel)
-
+        
         let tryAgainLabel = SKLabelNode(text: "Tap to Try Again")
         tryAgainLabel.name = "tryAgain"
-        tryAgainLabel.fontName = "Arial-BoldMT"
-        tryAgainLabel.position = CGPoint(x: frame.midX, y: frame.midY - 50)
+        tryAgainLabel.fontName = "HelveticaNeue"
+        tryAgainLabel.position = CGPoint(x: frame.midX, y: frame.midY - 100)
         tryAgainLabel.fontColor = UIColor.white
-        tryAgainLabel.fontSize = 35
+        tryAgainLabel.fontSize = 50
         tryAgainLabel.zPosition = 101
         self.addChild(tryAgainLabel)
-
-        let rotate = SKAction.rotate(byAngle: .pi * 2, duration: 1)
-        let rotateForever = SKAction.repeatForever(rotate)
-        gameOverPopup.run(rotateForever)
+        
+        let pulse = SKAction.sequence([SKAction.fadeOut(withDuration: 1.0), SKAction.fadeIn(withDuration: 1.0)])
+        let pulseForever = SKAction.repeatForever(pulse)
+        gameOverPopup.run(pulseForever)
         
         if !hasShownContinueButton {
-             continueGameLabel = SKLabelNode(text: "Tap to Continue")
-             continueGameLabel?.name = "continueGame"
-             continueGameLabel?.fontName = "Arial-BoldMT"
-             continueGameLabel?.position = CGPoint(x: frame.midX, y: frame.midY - 100)
-             continueGameLabel?.fontColor = UIColor.white
-             continueGameLabel?.fontSize = 35
-             continueGameLabel?.zPosition = 101
-             self.addChild(continueGameLabel!)
-             
-             hasShownContinueButton = true
+            continueGameLabel = SKLabelNode(text: "Continue")
+            continueGameLabel?.name = "continueGame"
+            continueGameLabel?.fontName = "HelveticaNeue"
+            continueGameLabel?.position = CGPoint(x: frame.midX, y: frame.midY - 200)
+            continueGameLabel?.fontColor = UIColor.white
+            continueGameLabel?.fontSize = 50
+            continueGameLabel?.zPosition = 101
+            self.addChild(continueGameLabel!)
+            
+            hasShownContinueButton = true
         }
     }
 
-    
+
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
         if let touch = touches.first {
             let location = touch.location(in: self)
@@ -457,6 +483,17 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         ball.physicsBody?.categoryBitMask = PhysicsCategories.ball
         ball.physicsBody?.collisionBitMask = PhysicsCategories.wall
         ball.physicsBody?.contactTestBitMask = PhysicsCategories.score | PhysicsCategories.wall
+        
+        // Create new fire particles and add them to the ball.
+        if let fireParticles = SKEmitterNode(fileNamed: "Fire.sks") {
+            fireParticles.position = CGPoint(x: 0, y: 0)
+            fireParticles.zPosition = -1 // make sure fire is under the ball
+            fireParticles.emissionAngle = CGFloat.pi / 2  // emits particles sideways
+            fireParticles.emissionAngleRange = CGFloat.pi * 2  // emits particles in all directions
+            fireParticles.particleBirthRate = 0  // start with no fire
+            self.fireParticles = fireParticles
+            self.ball.addChild(fireParticles)
+        }
 
         self.addChild(ball)
 
@@ -492,8 +529,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         self.isPaused = false
         hasShownContinueButton = false
         gameViewController?.userDidEarnReward = false
-
-
     }
 
+
 }
+    
